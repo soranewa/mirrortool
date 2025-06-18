@@ -1,4 +1,4 @@
-# 🪞 mirror-tool.sh
+# 🪞 Mirror Tool Repository
 
 Script interaktif untuk membuat mirror lokal dari distribusi Linux (atau sumber lain via rsync), dengan fitur start/stop dan monitoring progres langsung dari terminal.
 
