@@ -1,0 +1,4 @@
+Ubuntu CD|rsync://mirror.unair.ac.id/ubuntu-cd/
+Debian CD|rsync://mirror.unair.ac.id/debian-cd/
+Linuxmint CD|rsync://mirror.unair.ac.id/linuxmint-cd/
+Archlinux CD|rsync://mirror.unair.ac.id/archlinux/iso/
