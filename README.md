@@ -18,9 +18,9 @@ Script interaktif untuk membuat mirror lokal dari distribusi Linux (atau sumber 
 ## 📥 Cara Install
 
 ```bash
-git clone https://github.com/soranewa/mirrortool.sh.git
-cd mirror-tool.sh
-chmod +x mirror-tool.sh
+git clone https://github.com/soranewa/mirrortool.git
+cd mirrortool
+chmod +x mirrortool.sh
 ```
 
 > Pastikan rsync sudah terinstal:
