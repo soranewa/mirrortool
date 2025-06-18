@@ -71,6 +71,10 @@ function setup_mirror() {
 
   NAME=$(basename "$DEST")
   echo "$SELECTED_NAME|$SELECTED_URL" > "$CONFIG_DIR/$NAME.url"
+
+  SIZE=$(rsync --dry-run --stats "$SELECTED_URL" | grep "Total file size" | awk '{print $NF}' | tr -d ',')
+  echo "$SIZE" > "$CONFIG_DIR/$NAME.size"
+
   echo "✅ Mirror \"$SELECTED_NAME\" diset untuk folder $NAME"
   sleep 2
 }
@@ -84,7 +88,13 @@ function control_mirroring() {
   for i in "${!CONFIGS[@]}"; do
     NAME=$(basename "${CONFIGS[$i]%.url}")
     META=$(cut -d'|' -f1 "${CONFIGS[$i]}")
-    echo "$((i+1))) $NAME → $META"
+    PIDFILE="$CONFIG_DIR/$NAME.pid"
+    if [[ -f "$PIDFILE" ]] && ps -p $(cat "$PIDFILE") > /dev/null; then
+      STATUS="🟢 ON"
+    else
+      STATUS="🔴 OFF"
+    fi
+    echo "$((i+1))) $NAME → $META [$STATUS]"
   done
   echo "0) Kembali"
   read -rp "Pilih folder untuk start/stop: " CHOICE
@@ -110,20 +120,32 @@ function control_mirroring() {
 function check_all_status() {
   clear
   echo "📊 Status Semua Mirroring Aktif:"
-  for pidfile in "$CONFIG_DIR"/*.pid; do
-    [[ -f "$pidfile" ]] || continue
-    NAME=$(basename "$pidfile" .pid)
-    PID=$(cat "$pidfile")
+  CONFIGS=("$CONFIG_DIR"/*.url)
+  for CONFIG in "${CONFIGS[@]}"; do
+    NAME=$(basename "$CONFIG" .url)
     LOG="$LOG_DIR/$NAME.log"
-    if ps -p $PID > /dev/null; then
-      echo "🔄 $NAME (PID: $PID) sedang berjalan..."
+    PIDFILE="$CONFIG_DIR/$NAME.pid"
+    SIZEFILE="$CONFIG_DIR/$NAME.size"
+    SOURCE=$(cut -d'|' -f2 "$CONFIG")
+    if [[ -f "$PIDFILE" ]] && ps -p $(cat "$PIDFILE") > /dev/null; then
+      STATUS="🟢 ON"
+      PID=$(cat "$PIDFILE")
+      echo "🔄 $NAME (PID: $PID) [$STATUS]"
       FILE=$(tac "$LOG" | grep -m1 -oP '^\S+\.iso')
-      PROGRESS=$(tac "$LOG" | grep -m1 -oP '^[0-9,]+\s+[0-9]+%' | awk '{print $2}')
+      PROGRESS_LINE=$(tac "$LOG" | grep -m1 -P '^[0-9,]+\s+[0-9]+%')
+      PROGRESS=$(echo "$PROGRESS_LINE" | awk '{print $2}')
+      [[ -z "$PROGRESS" ]] && PROGRESS="Selesai atau idle"
       echo "📦 File: $FILE"
       echo "📈 Progress: $PROGRESS"
+      if [[ -f "$SIZEFILE" ]]; then
+        TOTAL=$(cat "$SIZEFILE")
+        TRANSFERRED=$(grep -Eo '^[0-9,]+\s+100%' "$LOG" | awk '{gsub(",", "", $1); sum+=$1} END{print sum}')
+        PERCENT_TOTAL=$(( 100 * TRANSFERRED / TOTAL ))
+        echo "📊 Total Progress: $PERCENT_TOTAL% ($((TRANSFERRED/1024/1024)) MB dari $((TOTAL/1024/1024)) MB)"
+      fi
     else
-      echo "✅ $NAME selesai atau tidak aktif."
-      rm -f "$pidfile"
+      STATUS="🔴 OFF"
+      echo "✅ $NAME [$STATUS] tidak aktif."
     fi
     echo "--------------------------------------"
   done
